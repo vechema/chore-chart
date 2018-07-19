@@ -21,7 +21,15 @@
 {{with .Posts}}
 <ol>
   {{range .}}
-  <li><cite>{{.Author}}</cite><p>{{.Message}} <button>delete</button></p></li>
+  <li>
+    <cite>{{.Author}}</cite></p>
+    {{.Message}} </p>
+    <form action="/delete" method="post">
+      <input type="hidden" value="{{.Author}}" name="name" />
+      <input type="hidden" value="{{.Message}}" name="message" />
+      <input type="submit" value="Delete">
+    </form></p>
+  </li>
   {{end}}
 </ol>
 {{end}}

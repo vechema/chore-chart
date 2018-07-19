@@ -32,7 +32,7 @@ func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", getIndexHandler).Methods("GET")
 	router.HandleFunc("/", postIndexHandler).Methods("POST")
-	//r.HandleFunc("/books/{title}", DeleteBook).Methods("DELETE")
+	router.HandleFunc("/delete", deleteIndexHandler).Methods("POST")
 	http.Handle("/", router)
 	appengine.Main()
 }
@@ -60,6 +60,37 @@ func getIndexHandler(w http.ResponseWriter, r *http.Request) {
 	indexTemplate.Execute(w, params)
 
 }
+
+func deleteIndexHandler(w http.ResponseWriter, r *http.Request) {
+	ctx := appengine.NewContext(r)
+
+	post := Post{
+		Author:  r.FormValue("name"),
+		Message: r.FormValue("message"),
+		Posted:  time.Now(),
+	}
+
+	q := datastore.NewQuery("Post").Filter("Author =", post.Author).Filter("Message =", post.Message)
+
+	posts := []Post{}
+	keys, err := q.GetAll(ctx, &posts)
+	if err != nil {
+		log.Errorf(ctx, "Getting posts: %v", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	key := keys[0]
+	err = datastore.Delete(ctx, key)
+
+	time.Sleep(100 * time.Millisecond)
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+
+	// TODO Have name preserved
+	// TODO Have notice say message: Post successfully deleted!
+
+}
+
 func postIndexHandler(w http.ResponseWriter, r *http.Request) {
 	// Make sure we're at the right url, only allow /
 	if r.URL.Path != "/" {
