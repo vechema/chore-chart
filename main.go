@@ -9,9 +9,16 @@ import (
 	"html/template"
 	"net/http"
 	"time"
+
+	firebase "firebase.google.com/go"
 )
 
 var (
+	firebaseConfig = &firebase.Config{
+		DatabaseURL:   "https://chore-chart-210002.firebaseio.com",
+		ProjectID:     "chore-chart-210002",
+		StorageBucket: "chore-chart-210002.appspot.com",
+	}
 	indexTemplate = template.Must(template.ParseFiles("index.html"))
 )
 
@@ -24,6 +31,7 @@ type templateParams struct {
 
 type Post struct {
 	Author  string
+	UserID  string
 	Message string
 	Posted  time.Time
 }
@@ -112,15 +120,52 @@ func postIndexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// It's a POST request, so handle the form submission.
+
+	message := r.FormValue("message")
+
+	// Create a new Firebase App
+	app, err := firebase.NewApp(ctx, firebaseConfig)
+	if err != nil {
+		params.Notice = "1. Couldn't authenticate. Try logging in again?"
+		params.Message = message // Preserve their message for trying again
+		indexTemplate.Execute(w, params)
+		return
+	}
+
+	// Create a new authenticator for the app
+	auth, err := app.Auth(ctx)
+	if err != nil {
+		params.Notice = "2. Couldn't authenticate. Try logging in again?"
+		params.Message = message // Preserve for trying again
+		indexTemplate.Execute(w, params)
+		return
+	}
+
+	// Verify the token passed in by the user is valid
+	tok, err := auth.VerifyIDTokenAndCheckRevoked(ctx, r.FormValue("token"))
+	if err != nil {
+		params.Notice = "3. Couldn't authenticate. Try logging in again? " + err.Error()
+		params.Message = message // Preserve for trying again
+		indexTemplate.Execute(w, params)
+		return
+	}
+
+	// Use validated token to get user info
+	user, err := auth.GetUser(ctx, tok.UID)
+	if err != nil {
+		params.Notice = "4. Couldn't authenticate. Try logging in again?"
+		params.Message = message // Preserve for trying again
+		indexTemplate.Execute(w, params)
+		return
+	}
+
 	post := Post{
-		Author:  r.FormValue("name"),
-		Message: r.FormValue("message"),
+		UserID:  user.UID,
+		Author:  user.DisplayName,
+		Message: message,
 		Posted:  time.Now(),
 	}
 
-	if post.Author == "" {
-		post.Author = "Anonymous Gopher"
-	}
 	params.Name = post.Author
 
 	if post.Message == "" {
@@ -144,7 +189,6 @@ func postIndexHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Prepend the post that was just added.
 	params.Posts = append([]Post{post}, params.Posts...)
-
 	params.Notice = fmt.Sprintf("Thank you for your submission, %s!", post.Author)
 	indexTemplate.Execute(w, params)
 

@@ -3,36 +3,70 @@
 <head>
   <title>Chore Chart</title>
   <link rel="stylesheet" type="text/css" href="/static/style.css">
+  <script src="https://www.gstatic.com/firebasejs/5.3.0/firebase.js"></script>
+  <script>
+	  // Initialize Firebase
+	  var config = {
+	    apiKey: "AIzaSyC33LepeiBkDPOqCUJI4VR6N9F0VYuwU3o",
+	    authDomain: "chore-chart-210002.firebaseapp.com",
+	    databaseURL: "https://chore-chart-210002.firebaseio.com",
+	    projectId: "chore-chart-210002",
+	    storageBucket: "chore-chart-210002.appspot.com",
+	    messagingSenderId: "918837959343"
+	  };
+	  firebase.initializeApp(config);
+  </script>
+  <script>
+    if (typeof firebase === 'undefined') {
+      const msg = "Please paste the Firebase initialization snippet into index.html. See https://console.firebase.google.com > Overview > Add Firebase to your web app.";
+      console.log(msg);
+      alert(msg);
+    }
+  </script>
+  <script src="https://cdn.firebase.com/libs/firebaseui/2.6.2/firebaseui.js"></script>
+  <link type="text/css" rel="stylesheet" href="https://cdn.firebase.com/libs/firebaseui/2.6.2/firebaseui.css" />
+  
+  <script src="/static/index.js"></script>
+  
 </head>
 <body>
 
-<h1>I hate fun</h1>
+	<h1>I hate fun</h1>
 
-<img id="logo" src="/static/gcp-gopher.svg" width="100">
+	<img id="logo" src="/static/gcp-gopher.svg" width="100">
 
-{{with .Notice}}<div id="notice">{{.}}</div>{{end}}
+	<!-- Firebase sign in -->
+	<div id="firebaseui-auth-container"></div>
 
-<form action="/" method="post">
-  <div>Name: <input name="name" value="{{.Name}}"></div>
-  <div>Message: <input name="message"></div>
-  <input type="submit">
-</form>
+	<div id="sign-in"></div>
+	<div>
+	  <span id="account-details"></span>
+	  <button id="sign-out" hidden=false>Sign Out</button>
+	</div>
 
-{{with .Posts}}
-<ol>
-  {{range .}}
-  <li>
-    <cite>{{.Author}}</cite></p>
-    {{.Message}} </p>
-    <form action="/delete" method="post">
-      <input type="hidden" value="{{.Author}}" name="name" />
-      <input type="hidden" value="{{.Message}}" name="message" />
-      <input type="submit" value="Delete">
-    </form></p>
-  </li>
-  {{end}}
-</ol>
-{{end}}
+	{{with .Notice}}<div id="notice">{{.}}</div>{{end}}
+
+	<form id="post-form" action="/" method="post" hidden=true>
+	  <div>Message: <input name="message" value="{{.Message}}"></div>
+	  <input type="hidden" name="token" id="token">
+	  <input type="submit">
+	</form>
+
+	{{with .Posts}}
+	<ol>
+	  {{range .}}
+	  <li>
+	    <cite>{{.Author}}</cite></p>
+	    {{.Message}} </p>
+	    <form action="/delete" method="post">
+	      <input type="hidden" value="{{.Author}}" name="name" />
+	      <input type="hidden" value="{{.Message}}" name="message" />
+	      <input type="submit" value="Delete">
+	    </form></p>
+	  </li>
+	  {{end}}
+	</ol>
+	{{end}}
 
 </body>
 </html>
